@@ -19,6 +19,11 @@ pub const NORM_DESCRIPTOR_LEN: usize = 36;
 /// a crude feature descriptor allowing limited number of comparison points
 pub type NormDescriptor = [f32; NORM_DESCRIPTOR_LEN];
 
+//TODO this file is not the right place for these
+/// maximum spatial distance between matching nodes
+pub const DCONN: u16 = 5;
+//maximum spatial distance between matching nodes
+pub const MAX_MATCH_SPATIAL_DIST2: u32 = (DCONN*DCONN + 1) as u32;
 
 /// The main change event struct
 #[derive(Clone)]
