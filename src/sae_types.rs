@@ -19,144 +19,147 @@ pub const NORM_DESCRIPTOR_LEN: usize = 36;
 /// a crude feature descriptor allowing limited number of comparison points
 pub type NormDescriptor = [f32; NORM_DESCRIPTOR_LEN];
 
-//TODO this file is not the right place for these
-/// maximum spatial distance between matching nodes
-pub const DCONN: u16 = 5;
-//maximum spatial distance between matching nodes
-pub const MAX_MATCH_SPATIAL_DIST2: u32 = (DCONN*DCONN + 1) as u32;
 
 /// The main change event struct
 #[derive(Clone)]
 pub struct SaeEvent {
-    pub row: u16,
-    pub col: u16,
-    pub polarity: u8,
-    pub timestamp: SaeTime,
-    pub norm_descriptor: Option<Box<NormDescriptor>>,
+  pub row: u16,
+  pub col: u16,
+  pub polarity: u8,
+  pub timestamp: SaeTime,
+  pub norm_descriptor: Option<Box<NormDescriptor>>,
 }
 
 impl fmt::Debug for SaeEvent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Evento {{ row: {}, col: {} time: {} pol: {}}}",
-               self.row, self.col, self.timestamp, self.polarity)
-    }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Evento {{ row: {}, col: {} time: {} pol: {}}}",
+           self.row, self.col, self.timestamp, self.polarity)
+  }
 }
 
 impl PartialEq for SaeEvent {
-    fn eq(&self, other: &SaeEvent) -> bool {
-        self.row == other.row &&
-          self.col == other.col &&
-          self.polarity == other.polarity &&
-          self.timestamp == other.timestamp
+  fn eq(&self, other: &SaeEvent) -> bool {
+    self.row == other.row &&
+      self.col == other.col &&
+      self.polarity == other.polarity &&
+      self.timestamp == other.timestamp
 
-            //TODO implement ParialEqa for norm_descriptor ?
-        // self.norm_descriptor.eq(&other.norm_descriptor);
-    }
+    // TODO implement ParialEqa for norm_descriptor ?
+    // self.norm_descriptor.eq(&other.norm_descriptor);
+  }
 }
 
 
 impl std::default::Default for SaeEvent {
-    fn default() -> Self {
-        SaeEvent {
-            row: 0,
-            col: 0,
-            polarity: 0,
-            timestamp: 0,
-            norm_descriptor: None,
-        }
+  fn default() -> Self {
+    SaeEvent {
+      row: 0,
+      col: 0,
+      polarity: 0,
+      timestamp: 0,
+      norm_descriptor: None,
     }
+  }
 }
 
 impl SaeEvent {
-    pub fn new() -> Self {
-        Self::default()
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  /// square of the euclidean distance between two events
+  pub fn spatial_dist_2(&self, other: &Self) -> u32 {
+    let drow: u32 = (self.row.max(other.row) - self.row.min(other.row)) as u32;
+    let dcol: u32 = (self.col.max(other.col) - self.col.min(other.col)) as u32;
+
+    drow*drow + dcol*dcol
+  }
+
+  /// manhattan distance or rectilinear distance
+  pub fn spatial_rl_dist(&self, other: &Self) -> u32 {
+    let drow: u32 = (self.row.max(other.row) - self.row.min(other.row)) as u32;
+    let dcol: u32 = (self.col.max(other.col) - self.col.min(other.col)) as u32;
+
+    drow + dcol
+  }
+
+  pub fn likeness(&self, b: &SaeEvent) -> f32 {
+    if self.norm_descriptor.is_none() || b.norm_descriptor.is_none() {
+      return 0.0;
     }
 
-    /// square of the pixel distance between two events
-    pub fn spatial_dist_2(&self, other: &Self) -> u32 {
-        let drow: u32 = (std::cmp::max(self.row, other.row) - std::cmp::min(self.row, other.row)) as u32;
-        let dcol: u32 = (std::cmp::max(self.col, other.col) - std::cmp::min(self.col, other.col)) as u32;
+    let b_desc = match b.norm_descriptor {
+      Some(ref p) => p,
+      _ => unreachable!()
+    };
 
-        drow*drow + dcol*dcol
+    let a_desc = match self.norm_descriptor {
+      Some(ref p) => p,
+      _ => unreachable!()
+    };
+
+
+    let mut da_total:f32 = 0.0;
+    let mut db_total:f32 = 0.0;
+    let mut min_total:f32 = 0.0;
+
+    for i in 0..a_desc.len() {
+      let da = a_desc[i];
+      let db = b_desc[i];
+      da_total += da;
+      db_total += db;
+      min_total += da.min(db);
     }
 
-    pub fn likeness(&self, b: &SaeEvent) -> f32 {
-        if self.norm_descriptor.is_none() || b.norm_descriptor.is_none() {
-            return 0.0;
-        }
+    let max_total = da_total.max(db_total);
 
-        let b_desc = match b.norm_descriptor {
-            Some(ref p) => p,
-            _ => unreachable!()
-        };
+    //likeness is 0..1
+    let likeness: f32 = min_total/max_total;
+    //println!("likeness: {}", likeness);
 
-        let a_desc = match self.norm_descriptor {
-            Some(ref p) => p,
-            _ => unreachable!()
-        };
-
-
-        let mut da_total:f32 = 0.0;
-        let mut db_total:f32 = 0.0;
-        let mut min_total:f32 = 0.0;
-
-        for i in 0..a_desc.len() {
-            let da = a_desc[i];
-            let db = b_desc[i];
-            da_total += da;
-            db_total += db;
-            min_total += da.min(db);
-        }
-
-        let max_total = da_total.max(db_total);
-
-        //likeness is 0..1
-        let likeness: f32 = min_total/max_total;
-        //println!("likeness: {}", likeness);
-
-        likeness
-    }
+    likeness
+  }
 }
 
 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use assert_approx_eq::assert_approx_eq;
+  use super::*;
+  use assert_approx_eq::assert_approx_eq;
 
-    #[test]
-    fn test_event_likeness() {
-        let evt_a = SaeEvent {
-            row: 0,
-            col: 0,
-            polarity: 0,
-            timestamp: 0,
-            norm_descriptor: Some(Box::new([1.0; NORM_DESCRIPTOR_LEN])),
-        };
+  #[test]
+  fn test_event_likeness() {
+    let evt_a = SaeEvent {
+      row: 0,
+      col: 0,
+      polarity: 0,
+      timestamp: 0,
+      norm_descriptor: Some(Box::new([1.0; NORM_DESCRIPTOR_LEN])),
+    };
 
-        let mut evt_b = SaeEvent {
-            row: 0,
-            col: 0,
-            polarity: 0,
-            timestamp: 0,
-            norm_descriptor: Some(Box::new([1.0; NORM_DESCRIPTOR_LEN])),
-        };
+    let mut evt_b = SaeEvent {
+      row: 0,
+      col: 0,
+      polarity: 0,
+      timestamp: 0,
+      norm_descriptor: Some(Box::new([1.0; NORM_DESCRIPTOR_LEN])),
+    };
 
-        let likeness = evt_a.likeness(&evt_b);
-        assert_approx_eq!(likeness, 1.0);
+    let likeness = evt_a.likeness(&evt_b);
+    assert_approx_eq!(likeness, 1.0);
 
-        evt_b.norm_descriptor = Some(Box::new([0.0; NORM_DESCRIPTOR_LEN]));
-        let likeness = evt_a.likeness(&evt_b);
-        assert_approx_eq!(likeness, 0.0);
+    evt_b.norm_descriptor = Some(Box::new([0.0; NORM_DESCRIPTOR_LEN]));
+    let likeness = evt_a.likeness(&evt_b);
+    assert_approx_eq!(likeness, 0.0);
 
-        evt_b.norm_descriptor = Some(Box::new([0.5; NORM_DESCRIPTOR_LEN]));
-        let likeness = evt_a.likeness(&evt_b);
-        assert_approx_eq!(likeness, 0.5);
+    evt_b.norm_descriptor = Some(Box::new([0.5; NORM_DESCRIPTOR_LEN]));
+    let likeness = evt_a.likeness(&evt_b);
+    assert_approx_eq!(likeness, 0.5);
 
-        evt_b.norm_descriptor = None;
-        let likeness = evt_a.likeness(&evt_b);
-        assert_approx_eq!(likeness, 0.0);
-    }
+    evt_b.norm_descriptor = None;
+    let likeness = evt_a.likeness(&evt_b);
+    assert_approx_eq!(likeness, 0.0);
+  }
 
 }

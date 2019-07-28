@@ -33,7 +33,7 @@
 /// ```
 /// This algorithm works with the Surface of Active Events (SAE) which is a matrix of
 /// timestamps (one per pixel), indicating when a change event (rising or falling above or
-/// below the detection threshold) most recently triggered at a particular  pixel.
+/// below the detection threshold) most recently triggered at a particular pixel.
 
 use arrayvec::ArrayVec;
 use crate::sae_types::*;
@@ -185,7 +185,7 @@ fn arcstar_expand(circle_vals: &[SaeTime], circle_dim: usize, min_arc_size: usiz
             }
         }
         else {
-            // CCW arc was the freshest value: include arc in freshest segment
+            // CCW arc has the freshest value: include arc in freshest segment
             if arc_ccw_val >=  segment_oldest {
                 freshest_arc_size = iteration + 1;
                 if arc_ccw_oldest < segment_oldest {
@@ -261,11 +261,6 @@ fn arcstar_check_for_point(sae_pol: &SaeMatrix, evt: &mut SaeEvent) -> bool {
     arc_valid
 }
 
-
-
-
-
-
 fn arcstar_is_event_corner(sae_pol: &SaeMatrix, evt: &mut SaeEvent) -> bool {
     let row = evt.row as usize;
     let col = evt.col as usize;
@@ -284,18 +279,13 @@ fn arcstar_is_event_corner(sae_pol: &SaeMatrix, evt: &mut SaeEvent) -> bool {
 
 /// Detect whether the input event is a corner, and compute descriptor if so:
 /// returns a modified event with computed descriptor, if it's a corner.
-pub fn detect_and_compute_one(sae_rise: &SaeMatrix, sae_fall: &SaeMatrix, evt: &SaeEvent) -> Option<SaeEvent> {
+pub fn detect_and_compute_one(sae_pol: &SaeMatrix, evt: &SaeEvent) -> Option<SaeEvent> {
     let mut out_evt: SaeEvent = evt.clone();
 
-    let is_corner = match evt.polarity {
-        1 => arcstar_is_event_corner(sae_rise, &mut out_evt),
-        _ => arcstar_is_event_corner(sae_fall, &mut out_evt)
-    };
-
-    if is_corner {
-        return Some(out_evt)
+    match arcstar_is_event_corner(sae_pol, &mut out_evt) {
+        true => Some(out_evt),
+        false => None
     }
-    None
 }
 
 
