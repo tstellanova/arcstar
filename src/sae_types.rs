@@ -32,8 +32,14 @@ pub struct SaeEvent {
 
 impl fmt::Debug for SaeEvent {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "Evento {{ row: {}, col: {} time: {} pol: {}}}",
-           self.row, self.col, self.timestamp, self.polarity)
+    let mut avg_desc = 0.0;
+    if self.norm_descriptor.is_some() {
+      let values = self.norm_descriptor.clone().unwrap();
+      let total:f32 = values.iter().sum();
+      avg_desc = total / (NORM_DESCRIPTOR_LEN as f32);
+    }
+    write!(f, "Evento {{ row: {}, col: {} time: {} pol: {} avg_desc: {} }}",
+           self.row, self.col, self.timestamp, self.polarity, avg_desc)
   }
 }
 
@@ -44,8 +50,7 @@ impl PartialEq for SaeEvent {
       self.polarity == other.polarity &&
       self.timestamp == other.timestamp
 
-    // TODO implement ParialEqa for norm_descriptor ?
-    // self.norm_descriptor.eq(&other.norm_descriptor);
+    // TODO implement PartialEq for norm_descriptor ?
   }
 }
 
