@@ -38,7 +38,7 @@ impl fmt::Debug for SaeEvent {
       let total:f32 = values.iter().sum();
       avg_desc = total / (NORM_DESCRIPTOR_LEN as f32);
     }
-    write!(f, "Evento {{ row: {}, col: {} time: {} pol: {} avg_desc: {} }}",
+    write!(f, "SaeEvent {{ row: {}, col: {} time: {} pol: {} avg_desc: {} }}",
            self.row, self.col, self.timestamp, self.polarity, avg_desc)
   }
 }
