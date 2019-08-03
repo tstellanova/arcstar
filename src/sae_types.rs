@@ -103,7 +103,6 @@ impl SaeEvent {
       _ => unreachable!()
     };
 
-
     let mut da_total:f32 = 0.0;
     let mut db_total:f32 = 0.0;
     let mut min_total:f32 = 0.0;
@@ -132,6 +131,33 @@ impl SaeEvent {
 mod tests {
   use super::*;
   use assert_approx_eq::assert_approx_eq;
+
+  #[test]
+  fn test_spatial_dist() {
+    let mut evt_a:SaeEvent = SaeEvent::new();
+    let mut evt_b:SaeEvent = SaeEvent::new();
+    let dist2 = evt_a.spatial_dist_2(&evt_b);
+    let rl_dist = evt_a.spatial_rl_dist(&evt_b);
+    assert_eq!(rl_dist, 0);
+    assert_eq!(dist2, 0);
+
+    evt_a.col = 3;
+    evt_b.col = 5;
+
+    let dist2 = evt_a.spatial_dist_2(&evt_b);
+    let rl_dist = evt_a.spatial_rl_dist(&evt_b);
+    assert_eq!(rl_dist, 2);
+    assert_eq!(dist2, 4);
+
+    evt_a.row = 3;
+    evt_b.row = 5;
+
+    let dist2 = evt_a.spatial_dist_2(&evt_b);
+    let rl_dist = evt_a.spatial_rl_dist(&evt_b);
+    assert_eq!(rl_dist, 4);
+    assert_eq!(dist2, 8);
+
+  }
 
   #[test]
   fn test_event_likeness() {
